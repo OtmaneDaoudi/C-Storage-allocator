@@ -3,22 +3,22 @@
 
 #include<stdio.h>
 
-//in this case we consider long to be the most restrictive type
-typedef long alignment; 
+// //in this case we consider long to be the most restrictive type
+// typedef long alignment; 
 
-union freeBlock
-{
-    alignment a; //force alignement
-    struct 
-    {
-        size_t size; 
-        union freeBlock * next; 
-        void * space; 
-    }; 
-};
+// union freeBlock
+// {
+//     alignment a; //force alignement
+//     struct 
+//     {
+//         size_t size; 
+//         union freeBlock * next; 
+//         void * space; 
+//     }; 
+// };
 
-typedef union freeBlock freeBlock; 
+// typedef union freeBlock freeBlock; 
 
-freeBlock* malloc(size_t);    //general-purpos storage allocator
-freeBlock* morecore(size_t);  //asks the system for more memory
+void* malloc(size_t);    //general-purpos storage allocator
+void free(void *); 
 #endif

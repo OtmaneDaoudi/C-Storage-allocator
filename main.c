@@ -1,21 +1,10 @@
-#include<stdio.h>
-
-typedef long alignment; 
-
-union header
-{
-    alignment a;  //if the most restrictive type can be stored at a particular address, all other types may be
-    struct 
-    {
-        unsigned short size; 
-        union header * next; 
-    }; 
-}; 
+#include "allocator.h"
 
 int main(void)
 {
-    printf("long = %d\n", sizeof(double)); 
-    printf("%d\n", sizeof(union header)); 
+    double * a = (double*)malloc(sizeof(double)); 
+    *a = 50; 
+    printf("a = %lf\n", *a); 
 
     return 0; 
 }
