@@ -1,10 +1,15 @@
-#include "allocator.h"
+// #include "allocator.h"
+/*
+ISSUES:
+    -are we really guaranteed that malloc returnes aligned pointers
+    -what should happen when no fitting chunk is found.
+    */
+#include<unistd.h>
+#include<stdio.h> 
 
 int main(void)
-{
-    double * a = (double*)malloc(sizeof(double)); 
-    *a = 50; 
-    printf("a = %lf\n", *a); 
-
+{ 
+    void * f = sbrk(0); 
+    printf("%p\n", f); 
     return 0; 
 }

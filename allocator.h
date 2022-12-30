@@ -3,22 +3,26 @@
 
 #include<stdio.h>
 
-// //in this case we consider long to be the most restrictive type
-// typedef long alignment; 
+#define align4(x) ((((x-1)>>2)<<2)+4)
 
-// union freeBlock
-// {
-//     alignment a; //force alignement
-//     struct 
-//     {
-//         size_t size; 
-//         union freeBlock * next; 
-//         void * space; 
-//     }; 
-// };
-
-// typedef union freeBlock freeBlock; 
+//already aligned
+struct block_meta_data
+{
+    size_t size; 
+    struct mem_block * next; 
+    int isFree; 
+}; 
+typedef struct block_meta_data block_meta_data;
 
 void* malloc(size_t);    //general-purpos storage allocator
+
+//first fit algorithm
+block_meta_data * find_block(size_t); 
+
+void ss()
+{
+    printf("%p\n", sbrk(0));
+}
+
 void free(void *); 
 #endif

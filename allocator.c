@@ -1,14 +1,19 @@
 #include<allocator.h>
 
 
+block_meta_data * base = NULL; 
+block_meta_data * last = NULL; //last previous visited chunk (in case no fitting chunk is found, then last is extended and then returned)
 /*
--last block always points to the first
--first fit approach
--If the block is exactly the size requested it is unlinked from the list and returned to the user
--If the block is too big, it is split, and the proper amount is returned to the user while the residue remains on the free list
--If no big-enough block is found, another large chunk is obtained by the operating system and linked into the free list.
--To simplify alignment, all blocks are multiples of the header size
--the requested size in characters is rounded up to the proper number of header-sized units
+TODO:
+malloc allocates at least the number of bytes requested;
+• The pointer returned by malloc points to an allocated space (i.e. a space where the
+program can read or write successfully;)
+• No other call to malloc will allocate this space or any portion of it, unless the pointer
+has been freed before.
+• malloc should be tractable: malloc must terminate in as soon as possible (it should not
+be NP-hard !;)
+• malloc should also provide resizing and freeing.
+MUST RETURN ALIGNED ADRESSES
 */
 void* malloc(size_t size)
 {
@@ -17,6 +22,21 @@ void* malloc(size_t size)
     if(mem == (void *)-1) return NULL; 
     else return mem; 
 }
+
+block_meta_data * find_block(size_t size)
+{
+    block_meta_data * current = base;
+    while(current != NULL && (!current->isFree || current->size < size))
+    {
+        last = current; //updated to the last visited chunk
+        current = current->next; 
+    }
+    return current; 
+}
+
+
+
+
 /*
 -causes a search of the free list, to find the proper place to insert the block being freed.
 - If the block being freed is adjacent to a free block on either side, it is coalesced with it into a single bigger block, so storage does not become too fragmented.
