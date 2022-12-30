@@ -33,6 +33,19 @@ block_meta_data* extendHeap(size_t size)
 }
 
 
+void splitBlock(block_meta_data* block, size_t requestedSize)
+{
+    //assuming that the block fits fo the requested size , and the passed
+    //requested size is multiple of four
+    char * bytePointer = (char*)block; 
+    block->next = (block_meta_data*)(bytePointer + BLOCK_SIZE + requestedSize); 
+    block->next->size = block->size - requestedSize - BLOCK_SIZE; 
+    block->next->next = block->next;
+    block->next->isFree = 1; 
+    block->size = requestedSize; 
+}
+
+
 /*
 -causes a search of the free list, to find the proper place to insert the block being freed.
 - If the block being freed is adjacent to a free block on either side, it is coalesced with it into a single bigger block, so storage does not become too fragmented.
