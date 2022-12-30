@@ -1,40 +1,36 @@
 #include<allocator.h>
 
+list blocks_list = {.base = NULL, .end = NULL};  
 
-block_meta_data * base = NULL; 
-block_meta_data * last = NULL; //last previous visited chunk (in case no fitting chunk is found, then last is extended and then returned)
-/*
-TODO:
-malloc allocates at least the number of bytes requested;
-• The pointer returned by malloc points to an allocated space (i.e. a space where the
-program can read or write successfully;)
-• No other call to malloc will allocate this space or any portion of it, unless the pointer
-has been freed before.
-• malloc should be tractable: malloc must terminate in as soon as possible (it should not
-be NP-hard !;)
-• malloc should also provide resizing and freeing.
-MUST RETURN ALIGNED ADRESSES
-*/
 void* malloc(size_t size)
 {
     if(size == 0) return NULL; 
-    void * mem = sbrk(size); 
+    void * mem ; //= sbrk(size); 
     if(mem == (void *)-1) return NULL; 
     else return mem; 
 }
 
-block_meta_data * find_block(size_t size)
+block_meta_data* find_block(size_t size)
 {
-    block_meta_data * current = base;
-    while(current != NULL && (!current->isFree || current->size < size))
-    {
-        last = current; //updated to the last visited chunk
+    block_meta_data* current = blocks_list.base;
+    while(current != NULL && (!current->isFree || current->size < size)) 
         current = current->next; 
-    }
     return current; 
 }
 
+block_meta_data* extendHeap(size_t size)
+{
+    //last is updated
+    void* mem; 
+    if((mem = sbrk(BLOCK_SIZE + size)) == (void*)-1) return NULL; //sbrk fails
+    blocks_list.end->next = (block_meta_data*)mem; 
+    blocks_list.end = blocks_list.end->next; 
+    blocks_list.end->size = size; 
+    blocks_list.end->next = NULL; 
+    blocks_list.end->isFree = 1; 
 
+    return blocks_list.end; 
+}
 
 
 /*
