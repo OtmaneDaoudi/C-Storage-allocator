@@ -32,7 +32,7 @@ void* malloc(size_t);    //general-purpos storage allocator
 block_meta_data* find_block(size_t); 
 
 //extends the heap if no fiting chunk is found
-block_meta_data* extendHeap(size_t); 
+int extendHeap(size_t); 
 
 //
 void splitBlock(block_meta_data*, size_t);
