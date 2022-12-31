@@ -6,7 +6,9 @@ block_meta_data* find_block(size_t size)
 {
     block_meta_data* current = blocks_list.base;
     while(current != NULL && (!current->isFree || current->size < size)) 
-        current = current->next; 
+    {
+        current = current->next;
+    }  
     return current; 
 }
 
@@ -27,12 +29,14 @@ int extendHeap(size_t size)
         blocks_list.end->next = newBlock; 
         blocks_list.end = newBlock; 
     }
+    // printf("heap extended by creating a new block at %p of size = %lu.\n", newBlock, newBlock->size);
     return 1; 
 }
 
 
 void splitBlock(block_meta_data* block, size_t requestedSize)
 {
+    printf("split block\n"); 
     //assuming that the block fits fo the requested size , and the passed
     //requested size is multiple of four
     char* bytePointer = (char*)block; 
@@ -42,6 +46,9 @@ void splitBlock(block_meta_data* block, size_t requestedSize)
     block->next->next = nextBlock; 
     block->next->isFree = 1; 
     block->size = requestedSize; 
+    // printf("block at %p was split into two blocks : \n", block); 
+    // printf("\tblock1 at %p with size = %lu\n", block, block->size); 
+    // printf("\tblock2 at %p with size = %lu\n", block->next, block->next->size); 
 }
 
 
