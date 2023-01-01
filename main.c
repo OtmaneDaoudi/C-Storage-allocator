@@ -1,5 +1,7 @@
 #include<stdio.h>
 #include<unistd.h>
+#include<string.h>
+
 
 //function for sizes that yield an aligned pointers (4 bytes alignemment)
 //given a positive integer , it will return the next multiple of 4
@@ -23,7 +25,7 @@ struct list
 typedef struct list list;
 
 //a new chunk is allocated (becomes the new tail) if no previous chunk fits
-void* malloc(size_t);    //general-purpos storage allocator
+void* malloc_v2(size_t);    //general-purpos storage allocator
 
 //first fit algorithm   
 block_meta_data* find_block(size_t); 
@@ -34,11 +36,18 @@ int extendHeap(size_t);
 //
 void splitBlock(block_meta_data*, size_t);
 
-list blocks_list = {.base = NULL, .end = NULL};  
+void free_v2(void*);
+
+void* calloc_v2(size_t, size_t); 
+//===============================================================
+//===============================================================
+
+
+list blocks_list = {NULL, NULL}; 
 
 block_meta_data* find_block(size_t size)
 {
-    block_meta_data* current = blocks_list.base;
+    block_meta_data* current = blocks_list.base; 
     while(current != NULL && (!current->isFree || current->size < size)) 
     {
         current = current->next;
@@ -50,10 +59,10 @@ int extendHeap(size_t size)
 {
     //size is aligned
     void* mem; 
-    if((mem = sbrk(BLOCK_SIZE + size*10)) == (void*)-1) return 0; //sbrk fails
+    if((mem = sbrk(BLOCK_SIZE + size)) == (void*)-1) return 0; //sbrk fails
     
     block_meta_data* newBlock = (block_meta_data*)mem; 
-    newBlock->size = size*10;
+    newBlock->size = size;
     newBlock->next = NULL;
     newBlock->isFree = 0; 
     //check for first-time allocation
@@ -70,23 +79,21 @@ int extendHeap(size_t size)
 
 void splitBlock(block_meta_data* block, size_t requestedSize)
 {
-    printf("split block\n"); 
-    //assuming that the block fits fo the requested size , and the passed
-    //requested size is multiple of four
+    //assuming that the block fits the requested size , and the passed requested size is aligned
     char* bytePointer = (char*)block; 
     block_meta_data* nextBlock = block->next; 
     block->next = (block_meta_data*)(bytePointer + BLOCK_SIZE + requestedSize); 
     block->next->size = block->size - requestedSize - BLOCK_SIZE; 
     block->next->next = nextBlock; 
+    // block->isFree = 0; 
     block->next->isFree = 1; 
     block->size = requestedSize; 
-    // printf("block at %p was split into two blocks : \n", block); 
-    // printf("\tblock1 at %p with size = %lu\n", block, block->size); 
-    // printf("\tblock2 at %p with size = %lu\n", block->next, block->next->size); 
+
+    //last block in the list
+    if(nextBlock == NULL) blocks_list.end = block->next; 
 }
 
-
-void* malloc(size_t size)
+void* malloc_v2(size_t size)
 {
     if(size == 0) return NULL; 
     size_t alignedSize = align4(size); 
@@ -96,12 +103,13 @@ void* malloc(size_t size)
     {
         //chunk found
         //check for splits
-        size_t availableSpace = chunk->size - alignedSize - BLOCK_SIZE; 
+        int availableSpace = (int)chunk->size - (int)alignedSize - BLOCK_SIZE; 
         if(availableSpace >= 4)
         {
             //chunk is splitable AND the remaining chunk is aligned
             splitBlock(chunk, alignedSize); 
         }
+        chunk->isFree = 0;
         return ((void*)chunk) + BLOCK_SIZE;   
     }
     else
@@ -111,7 +119,6 @@ void* malloc(size_t size)
         {
             fprintf(stderr, "Error while trying to extend the heap.\n"); 
         }
-        
         return ((char*)blocks_list.end) + BLOCK_SIZE; 
     }
 }
@@ -119,26 +126,60 @@ void* malloc(size_t size)
 void showBlock()
 {
     block_meta_data* current = blocks_list.base;
-    int i = 0;
-    printf("block %d at %p :\n");   
+    int i = 0; 
     while(current != NULL)
     {
-        printf("\tsize = %d | isFree = %d | next = %p\n", current->size, current->isFree, current->next); 
+        printf("block %d at %p :\n", i++, current);   
+        printf("\tsize = %lu | isFree = %d | next = %p\n", current->size, current->isFree, current->next); 
         current = current->next; 
     }
 }
 
+void* calloc_v2(size_t numberOfElements, size_t sizeOfEach)
+{
+    void* mem = malloc_v2(numberOfElements * sizeOfEach); 
+    //initialize the whole block to 0s
+    size_t bytes = align4(numberOfElements * sizeOfEach); 
+    for(int i=0; i<bytes; i++) *(((char*)mem) + i) = 0; 
+    return mem; 
+}
+
+void free_v2(void* mem)
+{
+    if(mem == NULL) return; 
+    //assure that mem is previously allocated by malloc_v2
+    block_meta_data* block = (block_meta_data*)(((char*)mem) - BLOCK_SIZE);
+    int isAllocated = 0; 
+    block_meta_data* current = blocks_list.base; 
+    while(current != NULL)
+    {
+        if(block == current)
+        {
+            isAllocated = 1; 
+            break; 
+        }
+        current = current->next; 
+    }
+    if(isAllocated)
+    {
+        if(!block->isFree) block->isFree = 1;
+        else printf("Info : the block is already free_v2 and available for storage.\n");  
+    }
+    else
+    {
+        fprintf(stderr, "error free_v2ing a block that is not previously allocated by malloc_v2.\n"); 
+    }
+}
+
+
 int main(void)
-{ 
-    int* arr = (int*)malloc(sizeof(int)); 
-    *arr = 5; 
-    printf("%p %d\n", arr, *arr);
-
-    int* x = (int*)malloc(sizeof(int)); 
-    *x = 58; 
-    printf("%p %d\n", x, *x); 
-
+{
+    char * mem = (char*)malloc_v2(sizeof(char) * 56); 
     showBlock(); 
-    
-    return 0; 
+    free_v2(mem);
+    char* string20 = (char*)malloc_v2(sizeof(char) * 20);
+    showBlock();  
+    char* string12 = (char*)malloc_v2(sizeof(char) * 12);
+    showBlock(); 
+    strcpy(string20, "hello world");   
 }
