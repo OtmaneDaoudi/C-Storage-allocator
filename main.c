@@ -39,6 +39,12 @@ void splitBlock(block_meta_data*, size_t);
 void free_v2(void*);
 
 void* calloc_v2(size_t, size_t); 
+
+//a function that deals with memory fragmentation
+void nofrag(block_meta_data*, block_meta_data*); 
+
+//merge both blocks in the first block
+void mergeBlocks(block_meta_data*, block_meta_data*); 
 //===============================================================
 //===============================================================
 
@@ -133,6 +139,7 @@ void showBlock()
         printf("\tsize = %lu | isFree = %d | next = %p\n", current->size, current->isFree, current->next); 
         current = current->next; 
     }
+    printf("\n"); 
 }
 
 void* calloc_v2(size_t numberOfElements, size_t sizeOfEach)
@@ -144,13 +151,32 @@ void* calloc_v2(size_t numberOfElements, size_t sizeOfEach)
     return mem; 
 }
 
+void mergeBlocks(block_meta_data* target, block_meta_data* block)
+{
+    target->next = block->next; 
+    target->size = target->size + BLOCK_SIZE + block->size;
+}
+
+void nofrag(block_meta_data* block, block_meta_data* prev)
+{
+    //block is assured to be free at this point
+    block_meta_data* next = block->next; 
+    if(prev != NULL && prev->isFree)
+    {
+        //merge with prev
+        mergeBlocks(prev, block); 
+        block = prev; 
+    }
+    if(next != NULL && next->isFree) mergeBlocks(block, next); 
+}
+
 void free_v2(void* mem)
 {
     if(mem == NULL) return; 
     //assure that mem is previously allocated by malloc_v2
     block_meta_data* block = (block_meta_data*)(((char*)mem) - BLOCK_SIZE);
     int isAllocated = 0; 
-    block_meta_data* current = blocks_list.base; 
+    block_meta_data* current = blocks_list.base, *prev = NULL; 
     while(current != NULL)
     {
         if(block == current)
@@ -158,11 +184,16 @@ void free_v2(void* mem)
             isAllocated = 1; 
             break; 
         }
+        prev = current; 
         current = current->next; 
     }
     if(isAllocated)
     {
-        if(!block->isFree) block->isFree = 1;
+        if(!block->isFree) 
+        {
+            block->isFree = 1;
+            nofrag(block, prev); 
+        }
         else printf("Info : the block is already free_v2 and available for storage.\n");  
     }
     else
@@ -171,15 +202,38 @@ void free_v2(void* mem)
     }
 }
 
-
 int main(void)
 {
-    char * mem = (char*)malloc_v2(sizeof(char) * 56); 
+    // char * mem = (char*)malloc_v2(sizeof(char) * 56); 
+    // free_v2(mem);
+    // char* string20 = (char*)malloc_v2(sizeof(char) * 20);
+    // // showBlock();
+    // strcpy(string20, "hello world");   
+  
+    // char* string12 = (char*)malloc_v2(sizeof(char) * 12);
+    // strcpy(string12, "otmane XXX"); 
+    double* arr = (double*)malloc_v2(sizeof(double) * 20); 
+    for(int i=0; i<20; i++) *(arr + i) = i; 
     showBlock(); 
-    free_v2(mem);
-    char* string20 = (char*)malloc_v2(sizeof(char) * 20);
-    showBlock();  
-    char* string12 = (char*)malloc_v2(sizeof(char) * 12);
+    free_v2(arr); 
     showBlock(); 
-    strcpy(string20, "hello world");   
+    void* ptr[6]; 
+    for(int i=0; i<6; i++) ptr[i] = malloc_v2(sizeof(int));
+    showBlock();    
+    int* c = (int*)malloc_v2(sizeof(int)); 
+    showBlock(); 
+
+    free_v2(ptr[0]); 
+    // free_v2(ptr[1]); 
+    showBlock();
+    free_v2(ptr[1]); 
+    showBlock(); 
+    free_v2(ptr[2]); 
+    showBlock(); 
+
+    // double* d = (double*)malloc_v2(sizeof(double)); 
+    // showBlock(); 
+    // free_v2(d); 
+    // showBlock(); 
+    return 0; 
 }
